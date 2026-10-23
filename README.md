@@ -53,6 +53,7 @@
 | `index.html`, `img/` | 웹 슬라이드와 그래프·그림 |
 | `results.json` | 분석의 모든 수치 |
 | `conversation.md` | 과제를 진행하며 Claude Code와 나눈 질문과 답변 |
+| `lectures/` | 분석 기준으로 참고한 수업 강의자료 (2~4주차: 수집 설계, 정제와 전처리, 기술통계) |
 
 ## 재현 방법
 
