@@ -1,0 +1,517 @@
+{
+  "encoding": "cp1252 (utf-8 실패)",
+  "raw_shape": [
+    1361,
+    53
+  ],
+  "exact_duplicate_rows": 0,
+  "alloy_name_repeats": 890,
+  "unique_alloys_raw": 470,
+  "diagnosis": [
+    {
+      "column": "Num_of_Elem",
+      "dtype": "float64",
+      "missing": 1,
+      "unique": 6
+    },
+    {
+      "column": "VEC",
+      "dtype": "float64",
+      "missing": 1,
+      "unique": 307
+    },
+    {
+      "column": "Atom.Size.Diff",
+      "dtype": "float64",
+      "missing": 1,
+      "unique": 438
+    },
+    {
+      "column": "Elect.Diff",
+      "dtype": "float64",
+      "missing": 1,
+      "unique": 394
+    },
+    {
+      "column": "dHmix",
+      "dtype": "float64",
+      "missing": 1,
+      "unique": 408
+    },
+    {
+      "column": "dSmix",
+      "dtype": "float64",
+      "missing": 1,
+      "unique": 248
+    },
+    {
+      "column": "Phases",
+      "dtype": "str",
+      "missing": 1,
+      "unique": 4
+    },
+    {
+      "column": "Sythesis_Route",
+      "dtype": "str",
+      "missing": 1,
+      "unique": 2
+    },
+    {
+      "column": "Hot-Cold_Working",
+      "dtype": "str",
+      "missing": 917,
+      "unique": 3
+    },
+    {
+      "column": "Homogenization_Temp",
+      "dtype": "float64",
+      "missing": 790,
+      "unique": 22
+    },
+    {
+      "column": "Annealing_Temp",
+      "dtype": "str",
+      "missing": 758,
+      "unique": 35
+    },
+    {
+      "column": "HPR",
+      "dtype": "str",
+      "missing": 1305,
+      "unique": 10
+    }
+  ],
+  "name_check": {
+    "ok": 1304,
+    "wrong_comp": 39,
+    "unverifiable": 17,
+    "vec_fixed": 38,
+    "chi_fixed": 22,
+    "examples": [
+      {
+        "alloy": "MoNbTaTi0.5W",
+        "feature": "VEC",
+        "given": 5.11,
+        "from_name": 5.33
+      },
+      {
+        "alloy": "MoNbTaTi0.75W",
+        "feature": "VEC",
+        "given": 5.05,
+        "from_name": 5.26
+      },
+      {
+        "alloy": "AlCrFeNi",
+        "feature": "VEC",
+        "given": 7.0,
+        "from_name": 6.75
+      },
+      {
+        "alloy": "NbTiV2Zr",
+        "feature": "VEC",
+        "given": 4.8,
+        "from_name": 4.6
+      },
+      {
+        "alloy": "Nb42Mo20Ti13Cr12V12Ta1",
+        "feature": "VEC",
+        "given": 5.41,
+        "from_name": 5.19
+      },
+      {
+        "alloy": "NbTiZr",
+        "feature": "VEC",
+        "given": 4.67,
+        "from_name": 4.33
+      }
+    ],
+    "wrong_comp_examples": [
+      "Hf0.5Nb0.5Ta0.5Ti1.5Zr",
+      "HfMo0.5NbTiV0.5",
+      "MoNbTaTiW",
+      "Al65Cu5Fe5Mg5Si15Zn5",
+      "Al65Cu5Mg5Ni5Si15Zn5",
+      "Al0.3HfNbTaTiZr"
+    ]
+  },
+  "name_variants": 15,
+  "conflicting_alloys": 15,
+  "conflict_examples": [
+    {
+      "names": [
+        "Al0.5CoCrFeNi"
+      ],
+      "phases": [
+        "FCC_PLUS_BCC",
+        "FCC_SS"
+      ]
+    },
+    {
+      "names": [
+        "AlCoCrFeNi2.1"
+      ],
+      "phases": [
+        "FCC_PLUS_BCC",
+        "Im"
+      ]
+    },
+    {
+      "names": [
+        "AlCoCrCuFeNi",
+        "AlCrFeCoNiCu"
+      ],
+      "phases": [
+        "BCC_SS",
+        "FCC_PLUS_BCC",
+        "Im"
+      ]
+    },
+    {
+      "names": [
+        "AlCoCrFeNiTi"
+      ],
+      "phases": [
+        "BCC_SS",
+        "Im"
+      ]
+    }
+  ],
+  "cleaning_log": [
+    {
+      "rule": "상·입력변수가 빈 행 제외",
+      "before": 1361,
+      "after": 1360,
+      "removed": 1,
+      "reason": "값이 하나도 없는 빈 행 (CSV 끝의 빈 줄)"
+    },
+    {
+      "rule": "이름으로 VEC·Δχ 검증 후 오타 교정",
+      "before": 1360,
+      "after": 1360,
+      "removed": 0,
+      "reason": "합금 이름(화학식)으로 다시 계산. VEC 38행, Δχ 22행 교정 (예: NbTiZr VEC 4.67 → 4.33, TiZrNbTa Δχ 3.92 → 0.10)"
+    },
+    {
+      "rule": "잘못된 조성으로 계산된 행 제외",
+      "before": 1360,
+      "after": 1321,
+      "removed": 39,
+      "reason": "ΔSmix까지 이름과 다름 → 원저자가 틀린 조성으로 모든 변수를 계산(예: MoNbTaTiW는 5원소인데 4원소 값)"
+    },
+    {
+      "rule": "조작적 정의: ΔSmix ≥ 1R(8.31)",
+      "before": 1321,
+      "after": 1292,
+      "removed": 29,
+      "reason": "고·중엔트로피합금만 분석. Al 90% 합금 같은 일반 합금 제외"
+    },
+    {
+      "rule": "주조(AC) 합금만",
+      "before": 1292,
+      "after": 1217,
+      "removed": 75,
+      "reason": "분말야금(PM)은 제조 경로가 달라 상이 달라질 수 있음"
+    },
+    {
+      "rule": "가공·열처리 기록이 없는 행만",
+      "before": 1217,
+      "after": 470,
+      "removed": 747,
+      "reason": "빈칸 = ‘처리하지 않음’. 열처리는 상을 바꾸므로 주조 직후 상태로 통일"
+    },
+    {
+      "rule": "논문마다 상이 다른 합금 제외",
+      "before": 470,
+      "after": 404,
+      "removed": 66,
+      "reason": "같은 조성인데 논문마다 상이 다름(15종) → 정답 라벨을 정할 수 없음"
+    },
+    {
+      "rule": "같은 조성은 1행만",
+      "before": 404,
+      "after": 258,
+      "removed": 146,
+      "reason": "이름 표기 순서가 달라도(AlCrFeCoNi = AlCoCrFeNi) 같은 조성이면 한 합금으로 셈"
+    },
+    {
+      "rule": "이상치는 지우지 않음",
+      "before": 258,
+      "after": 258,
+      "removed": 0,
+      "reason": "극단값(δ 16.9%, ΔHmix −39)도 실제 합금의 계산값. 입력 오류 근거 없음"
+    },
+    {
+      "rule": "결측 대치 안 함",
+      "before": 258,
+      "after": 258,
+      "removed": 0,
+      "reason": "평균 대치는 표준편차를 줄여 데이터를 실제보다 고르게 만듦"
+    }
+  ],
+  "n_final": 258,
+  "phase_counts": {
+    "BCC_SS": 131,
+    "FCC_SS": 27,
+    "FCC_PLUS_BCC": 22,
+    "Im": 78
+  },
+  "descriptive": [
+    {
+      "feature": "Num_of_Elem",
+      "n": 258,
+      "mean": 5.12,
+      "median": 5.0,
+      "std": 0.84,
+      "min": 3.0,
+      "min_alloy": "CoFeNi",
+      "max": 7.0,
+      "max_alloy": "Al0.5CoCrCu0.5FeNiTi0.5",
+      "skew": -0.0,
+      "mean_minus_median_in_sd": 0.15
+    },
+    {
+      "feature": "VEC",
+      "n": 258,
+      "mean": 6.09,
+      "median": 6.52,
+      "std": 1.53,
+      "min": 3.46,
+      "min_alloy": "Al58.5Mg31.5Zn4.5Cu4.5Si1",
+      "max": 9.0,
+      "max_alloy": "CoFeNi",
+      "skew": 0.09,
+      "mean_minus_median_in_sd": -0.28
+    },
+    {
+      "feature": "Atom.Size.Diff",
+      "n": 258,
+      "mean": 5.34,
+      "median": 5.34,
+      "std": 2.07,
+      "min": 0.75,
+      "min_alloy": "CoFeNi",
+      "max": 16.86,
+      "max_alloy": "AlCCoCrFeNi",
+      "skew": 1.22,
+      "mean_minus_median_in_sd": -0.0
+    },
+    {
+      "feature": "Elect.Diff",
+      "n": 258,
+      "mean": 0.17,
+      "median": 0.14,
+      "std": 0.08,
+      "min": 0.03,
+      "min_alloy": "CoFeNi",
+      "max": 0.38,
+      "max_alloy": "HfNbTaTiZrMoW",
+      "skew": 0.89,
+      "mean_minus_median_in_sd": 0.38
+    },
+    {
+      "feature": "dHmix",
+      "n": 258,
+      "mean": -7.54,
+      "median": -6.21,
+      "std": 7.74,
+      "min": -39.45,
+      "min_alloy": "Mo0.5NbHf0.5ZrTiSi0.9",
+      "max": 4.16,
+      "max_alloy": "CoCrCuFeMn",
+      "skew": -0.94,
+      "mean_minus_median_in_sd": -0.17
+    },
+    {
+      "feature": "dSmix",
+      "n": 258,
+      "mean": 12.89,
+      "median": 13.15,
+      "std": 1.55,
+      "min": 8.34,
+      "min_alloy": "Al58.5Mg31.5Zn4.5Cu4.5Si1",
+      "max": 16.18,
+      "max_alloy": "HfNbTaTiZrMoW",
+      "skew": -0.43,
+      "mean_minus_median_in_sd": -0.16
+    }
+  ],
+  "by_phase": {
+    "BCC_SS": {
+      "VEC_count": 131.0,
+      "VEC_mean": 5.03,
+      "VEC_median": 4.67,
+      "VEC_std": 0.99,
+      "dHmix_count": 131.0,
+      "dHmix_mean": -4.95,
+      "dHmix_median": -2.77,
+      "dHmix_std": 6.85,
+      "Atom.Size.Diff_count": 131.0,
+      "Atom.Size.Diff_mean": 5.37,
+      "Atom.Size.Diff_median": 5.62,
+      "Atom.Size.Diff_std": 1.35
+    },
+    "FCC_SS": {
+      "VEC_count": 27.0,
+      "VEC_mean": 8.12,
+      "VEC_median": 8.06,
+      "VEC_std": 0.47,
+      "dHmix_count": 27.0,
+      "dHmix_mean": -4.86,
+      "dHmix_median": -5.01,
+      "dHmix_std": 3.7,
+      "Atom.Size.Diff_count": 27.0,
+      "Atom.Size.Diff_mean": 3.53,
+      "Atom.Size.Diff_median": 3.87,
+      "Atom.Size.Diff_std": 1.9
+    },
+    "FCC_PLUS_BCC": {
+      "VEC_count": 22.0,
+      "VEC_mean": 7.43,
+      "VEC_median": 7.47,
+      "VEC_std": 0.49,
+      "dHmix_count": 22.0,
+      "dHmix_mean": -5.23,
+      "dHmix_median": -7.79,
+      "dHmix_std": 6.06,
+      "Atom.Size.Diff_count": 22.0,
+      "Atom.Size.Diff_mean": 4.51,
+      "Atom.Size.Diff_median": 4.73,
+      "Atom.Size.Diff_std": 1.18
+    },
+    "Im": {
+      "VEC_count": 78.0,
+      "VEC_mean": 6.79,
+      "VEC_median": 7.12,
+      "VEC_std": 1.3,
+      "dHmix_count": 78.0,
+      "dHmix_mean": -13.47,
+      "dHmix_median": -11.82,
+      "dHmix_std": 7.41,
+      "Atom.Size.Diff_count": 78.0,
+      "Atom.Size.Diff_mean": 6.15,
+      "Atom.Size.Diff_median": 5.68,
+      "Atom.Size.Diff_std": 2.77
+    }
+  },
+  "guo_window": {
+    "ss_inside_pct": 70.6,
+    "im_inside_pct": 41.0
+  },
+  "vec_rule": {
+    "accuracy": 0.574,
+    "macro_f1": 0.417
+  },
+  "vec_rule_non_im_accuracy": 0.822,
+  "majority_baseline": 0.508,
+  "models": {
+    "로지스틱 회귀": {
+      "accuracy": 0.752,
+      "acc_std": 0.036,
+      "macro_f1": 0.68,
+      "pseudo_r2": 0.502
+    },
+    "랜덤포레스트": {
+      "accuracy": 0.83,
+      "acc_std": 0.044,
+      "macro_f1": 0.793,
+      "pseudo_r2": 0.591
+    },
+    "그래디언트 부스팅": {
+      "accuracy": 0.783,
+      "acc_std": 0.015,
+      "macro_f1": 0.729,
+      "pseudo_r2": 0.375
+    }
+  },
+  "sensitivity": {
+    "keep_first_n": 273,
+    "keep_first_accuracy": 0.787,
+    "exclude_conflict_n": 258,
+    "exclude_conflict_accuracy": 0.83
+  },
+  "smote": {
+    "leaky_split_accuracy": 0.886,
+    "proper_cv_accuracy": 0.83,
+    "proper_cv_macro_f1": 0.781,
+    "no_smote_cv_accuracy": 0.83
+  },
+  "per_class_recall": {
+    "BCC_SS": 0.893,
+    "FCC_SS": 0.778,
+    "FCC_PLUS_BCC": 0.682,
+    "Im": 0.782
+  },
+  "fccbcc_to_im": 0.227,
+  "importance": {
+    "VEC": 0.2844,
+    "dHmix": 0.1145,
+    "Atom.Size.Diff": 0.0667,
+    "Elect.Diff": 0.0315,
+    "dSmix": 0.0193,
+    "Num_of_Elem": 0.0132
+  },
+  "shap_mean_abs": {
+    "BCC_SS": {
+      "Num_of_Elem": 0.0259,
+      "VEC": 0.2484,
+      "Atom.Size.Diff": 0.0663,
+      "Elect.Diff": 0.0511,
+      "dHmix": 0.0781,
+      "dSmix": 0.0294
+    },
+    "FCC_SS": {
+      "Num_of_Elem": 0.0084,
+      "VEC": 0.1,
+      "Atom.Size.Diff": 0.0282,
+      "Elect.Diff": 0.0169,
+      "dHmix": 0.0573,
+      "dSmix": 0.0169
+    },
+    "FCC_PLUS_BCC": {
+      "Num_of_Elem": 0.0109,
+      "VEC": 0.0689,
+      "Atom.Size.Diff": 0.0242,
+      "Elect.Diff": 0.0255,
+      "dHmix": 0.0413,
+      "dSmix": 0.0211
+    },
+    "Im": {
+      "Num_of_Elem": 0.0205,
+      "VEC": 0.0928,
+      "Atom.Size.Diff": 0.0696,
+      "Elect.Diff": 0.0492,
+      "dHmix": 0.1369,
+      "dSmix": 0.0309
+    }
+  },
+  "shap_rank_overall": {
+    "VEC": 0.5101,
+    "dHmix": 0.3136,
+    "Atom.Size.Diff": 0.1882,
+    "Elect.Diff": 0.1427,
+    "dSmix": 0.0983,
+    "Num_of_Elem": 0.0658
+  },
+  "shap_example": {
+    "alloy": "AlCoFeNi",
+    "vec": 7.5,
+    "p_bcc": 0.71,
+    "base": 0.51,
+    "contrib": {
+      "Atom.Size.Diff": 0.146,
+      "Elect.Diff": 0.101,
+      "dHmix": 0.071,
+      "dSmix": 0.053,
+      "Num_of_Elem": 0.038,
+      "VEC": -0.203
+    },
+    "values": {
+      "Num_of_Elem": 4.0,
+      "VEC": 7.5,
+      "Atom.Size.Diff": 6.24,
+      "Elect.Diff": 0.12,
+      "dHmix": -13.75,
+      "dSmix": 11.53
+    }
+  }
+}

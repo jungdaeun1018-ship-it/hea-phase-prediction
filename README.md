@@ -2,7 +2,7 @@
 
 데이터리터러시의이해 발표 과제. 고엔트로피합금(HEA) 원자료 1,361행을 진단·검증·정제해 258종으로 만들고, 기술통계와 머신러닝으로 결정 구조(상)를 분류한 뒤 SHAP으로 해석했습니다.
 
-- **발표 슬라이드(웹):** https://jungdaeun1018-ship-it.github.io/hea-phase-prediction/hea-phase-prediction/docs/
+- **발표 슬라이드(웹):** https://jungdaeun1018-ship-it.github.io/hea-phase-prediction/
 - **발표 자료(PPTX):** [데이터리터러시_중간과제.pptx](데이터리터러시_중간과제.pptx)
 
 ## 분석 흐름
@@ -50,14 +50,15 @@
 | `scripts/alloy_formula.py` | 합금 이름(화학식)을 원소 비율로 해석 |
 | `scripts/draw_phase_tree.py` | ‘두 갈림길’ 그림 |
 | `scripts/build_pptx.py` | 슬라이드 PPTX 생성 (초안) |
-| `docs/` | 웹 슬라이드 (`index.html`), 그래프 (`img/`), 모든 수치 (`results.json`) |
+| `index.html`, `img/` | 웹 슬라이드와 그래프·그림 |
+| `results.json` | 분석의 모든 수치 |
 | `conversation.md` | 과제를 진행하며 Claude Code와 나눈 질문과 답변 |
 
 ## 재현 방법
 
 ```bash
 pip install pandas numpy scikit-learn imbalanced-learn matplotlib shap
-python scripts/analyze_hea.py data/hea_phases_machaka2021.csv docs
+python scripts/analyze_hea.py data/hea_phases_machaka2021.csv .
 ```
 
 그래프 한글 표시에 맑은 고딕 폰트를 사용합니다 (Windows 기본 폰트).

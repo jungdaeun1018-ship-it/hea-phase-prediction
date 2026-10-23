@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>고엔트로피합금 상 예측</title>
+<style>
+  :root {
+    --page: #e9e8e3; --surface: #fcfcfb; --ink: #0b0b0b; --ink2: #52514e; --muted: #898781;
+    --line: #e1e0d9; --accent: #2a78d6; --accent-d: #1c5cab; --accent2: #eb6834; --soft: #eef4fc; --good: #006300;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--page); color: var(--ink);
+    font-family: "Pretendard", "Malgun Gothic", system-ui, -apple-system, "Segoe UI", sans-serif; overflow: hidden; }
+  #stage { position: absolute; top: 50%; left: 50%; width: 1280px; height: 720px; transform-origin: center; }
+  .slide { position: absolute; inset: 0; background: var(--surface); padding: 46px 66px; display: none; flex-direction: column;
+    box-shadow: 0 6px 30px rgba(0,0,0,.12); border-radius: 6px; }
+  .slide.active { display: flex; }
+  .kicker { font-size: 15px; font-weight: 700; color: var(--accent); letter-spacing: .04em; margin-bottom: 8px; }
+  .kicker .wk { display: inline-block; margin-left: 8px; padding: 1px 8px; border: 1px solid var(--accent); border-radius: 10px; font-size: 12px; }
+  .kicker .cpt { display: inline-block; margin-left: 8px; padding: 1px 8px; background: var(--accent); color: #fff; border-radius: 10px; font-size: 12px; }
+  h1 { font-size: 52px; line-height: 1.2; font-weight: 800; letter-spacing: -.02em; }
+  h2 { font-size: 31px; line-height: 1.25; font-weight: 800; letter-spacing: -.015em; margin-bottom: 16px; }
+  p, li { font-size: 19px; line-height: 1.55; color: var(--ink2); }
+  ul { padding-left: 1.1em; } li { margin-bottom: 6px; } li::marker { color: var(--accent); }
+  b, strong { color: var(--ink); }
+  .body { flex: 1; display: flex; gap: 32px; min-height: 0; }
+  .col { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+  .top { justify-content: flex-start; }
+  .fig { flex: 1.35; display: flex; align-items: center; justify-content: center; min-width: 0; }
+  .fig img { max-width: 100%; max-height: 480px; object-fit: contain; }
+  .wide img { max-height: 320px; }
+  .short img { max-height: 370px; }
+  .note { font-size: 14px; color: var(--muted); margin-top: auto; padding-top: 8px; line-height: 1.5; }
+  .callout { background: var(--soft); padding: 12px 18px; border-radius: 8px; margin-top: 12px; }
+  .callout p { font-size: 17px; }
+  .warn { background: #fdf0ea; }
+  .stats { display: flex; gap: 18px; margin: 6px 0 12px; }
+  .stat { flex: 1; border: 1px solid var(--line); border-radius: 8px; padding: 12px 18px; }
+  .stat .v { font-size: 34px; font-weight: 800; color: var(--ink); line-height: 1.1; }
+  .stat .l { font-size: 14px; color: var(--muted); margin-top: 6px; }
+  .flow { display: flex; align-items: stretch; gap: 10px; margin: 4px 0 14px; }
+  .step { flex: 1; border: 1px solid var(--line); border-radius: 8px; padding: 13px; }
+  .step .n { font-size: 13px; font-weight: 700; color: var(--accent); }
+  .step .t { font-size: 18px; font-weight: 700; margin: 4px 0 6px; }
+  .step .d { font-size: 14.5px; color: var(--ink2); line-height: 1.5; }
+  .arrow { align-self: center; color: var(--muted); font-size: 22px; }
+  table { border-collapse: collapse; width: 100%; font-size: 15.5px; }
+  th, td { text-align: left; padding: 6px 9px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; white-space: nowrap; }
+  td { color: var(--ink2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.k { color: var(--ink); font-weight: 600; white-space: nowrap; }
+  tr.zero td { color: var(--muted); }
+  .tag { display: inline-block; font-size: 13px; font-weight: 700; padding: 1px 8px; border-radius: 10px; white-space: nowrap; }
+  .tag.ok { background: #e6f2e6; color: var(--good); }
+  .tag.no { background: #fdf0ea; color: #b4441a; }
+  .title-slide { justify-content: center; background: #12305a; }
+  .title-slide .kicker { color: #9ec5f4; }
+  .title-slide h1 { color: #fff; }
+  .title-slide .sub { font-size: 23px; color: #cde2fb; margin-top: 18px; }
+  .title-slide .meta { font-size: 16px; color: #9ec5f4; margin-top: 40px; line-height: 1.7; }
+  .chips { display: flex; gap: 12px; margin-top: 30px; }
+  .chip { background: #1c4a80; color: #fff; font-weight: 700; font-size: 15px; padding: 9px 16px; border-radius: 8px; }
+  /* concept diagrams */
+  .folds { display: grid; grid-template-columns: 90px repeat(5, 1fr) 120px; gap: 6px; align-items: center; }
+  .folds .lab { font-size: 14px; color: var(--ink2); font-weight: 600; }
+  .folds .b { height: 34px; border-radius: 6px; background: #cde2fb; display: flex; align-items: center; justify-content: center; font-size: 13px; color: var(--accent-d); font-weight: 700; }
+  .folds .b.t { background: var(--accent2); color: #fff; }
+  .folds .acc { font-size: 14px; color: var(--ink); font-variant-numeric: tabular-nums; text-align: right; }
+  .legend { display: flex; gap: 18px; font-size: 14px; color: var(--ink2); margin-top: 10px; }
+  .sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: -2px; margin-right: 6px; }
+  .cm { display: grid; grid-template-columns: 110px 1fr 1fr; grid-template-rows: 32px 72px 72px; gap: 6px; }
+  .cm div { border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; font-size: 14px; }
+  .cm .h { color: var(--muted); font-weight: 600; font-size: 13px; }
+  .cm .g { background: #cde2fb; color: var(--accent-d); }
+  .cm .r { background: #fdf0ea; color: #b4441a; }
+  .cm b { font-size: 17px; }
+  .imgrow { flex: 1; min-height: 0; display: flex; gap: 18px; align-items: center; margin-top: 12px; }
+  .imgrow figure { flex: 1; min-width: 0; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .imgrow img { max-width: 100%; max-height: 100%; min-height: 0; object-fit: contain; border-radius: 6px; }
+  .imgrow figcaption { font-size: 13px; color: var(--muted); }
+  .src { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .src .node { border-radius: 8px; padding: 10px 14px; text-align: center; font-size: 15px; display: flex; flex-direction: column; gap: 2px; }
+  .src .node b { font-size: 16px; color: var(--ink); }
+  .src .origin { background: #12305a; width: 74%; }
+  .src .origin b { color: #fff; font-size: 18px; }
+  .src .tagline { color: #9ec5f4; font-size: 13px; font-weight: 700; }
+  .src .branches { display: flex; gap: 14px; width: 100%; }
+  .src .branch { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .src .edge { font-size: 14px; color: var(--ink2); }
+  .src .edge::before { content: "↓ "; color: var(--muted); }
+  .src .ok { background: #e6f2e6; width: 100%; } .src .ok span { color: var(--good); font-weight: 700; }
+  .src .bad { background: #fdf0ea; width: 100%; } .src .bad span { color: #b4441a; font-weight: 700; }
+  .eq { font-size: 20px; color: var(--ink); background: #f7f7f5; border-radius: 8px; padding: 12px 16px; text-align: center; margin: 6px 0 10px; }
+  .bar { position: absolute; left: 0; bottom: 0; height: 4px; background: var(--accent); border-radius: 0 0 0 6px; }
+  .pageno { position: absolute; right: 28px; bottom: 16px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .nav { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; z-index: 5; }
+  .nav button { border: 1px solid #c3c2b7; background: #fcfcfb; color: var(--ink2); font: inherit; font-size: 14px;
+    padding: 6px 14px; border-radius: 6px; cursor: pointer; }
+  .nav button:hover { background: #f0efec; }
+  a { color: var(--accent); }
+  @media print {
+    html, body { overflow: visible; background: #fff; }
+    #stage { position: static; transform: none !important; width: auto; height: auto; }
+    .slide { display: flex !important; position: relative; width: 1280px; height: 720px; page-break-after: always; box-shadow: none; }
+    .nav, .bar { display: none; }
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+
+<!-- 1 -->
+<section class="slide title-slide">
+  <div class="kicker">데이터리터러시의이해 · 데이터 분석 발표</div>
+  <h1>고엔트로피합금의 결정 구조,<br>데이터로 예측할 수 있을까?</h1>
+  <p class="sub">원자료 1,361행을 진단·검증·정제해 합금 258종으로 만들고, 기술통계와 머신러닝으로 상(Phase)을 분류하다</p>
+  <div class="chips"><span class="chip">수집 설계</span><span class="chip">진단</span><span class="chip">정제 로그</span><span class="chip">기술통계</span><span class="chip">예측 모델</span><span class="chip">해석(SHAP)</span></div>
+  <p class="meta">데이터: Machaka (2021), <i>Data in Brief</i> 38, 107346 · 분석: Python + Claude Code(AI 에이전트)</p>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <div class="kicker">배경과 질문</div>
+  <h2>고엔트로피합금(HEA)과 ‘상’</h2>
+  <div class="body" style="flex:none">
+    <div class="col top">
+      <ul>
+        <li style="font-size:17px">기존 강철: <b>철(Fe) 하나가 주원소</b>, 나머지는 소량 첨가</li>
+        <li style="font-size:17px">HEA: <b>4~5종 이상의 원소를 비슷한 비율</b>로 섞은 합금 (예: CoCrFeMnNi)</li>
+        <li style="font-size:17px">성질을 좌우하는 것은 <b>결정 구조(상)</b> — BCC: 단단하지만 취성 · FCC: 연성·인성 우수 · 금속간화합물(Im): 매우 단단하지만 깨지기 쉬움</li>
+      </ul>
+    </div>
+    <div class="col top">
+      <div class="callout" style="margin-top:0;padding:9px 16px"><p style="font-size:15.5px"><b>문제:</b> 새 합금의 상을 확인하려면 용해·주조·X선 회절 분석까지 실험이 필요하다.</p></div>
+      <div class="callout" style="margin-top:8px;padding:9px 16px"><p style="font-size:15.5px"><b>분석 질문:</b> 조성에서 계산되는 열역학 변수만으로, 실험 전에 주조 직후의 상을 맞힐 수 있는가?</p></div>
+      <div class="callout" style="margin-top:8px;padding:9px 16px"><p style="font-size:15.5px"><b>하위 질문:</b> ① 상마다 변수 분포가 어떻게 다른가(기술통계) ② 어느 변수가 어느 방향으로 작용하나(SHAP) ③ 단순 규칙보다 나은가</p></div>
+    </div>
+  </div>
+  <div class="imgrow">
+    <figure><img src="img/hea_entropy.png" alt="엔트로피가 낮은 일반 금속(규칙적 배열)과 높은 고엔트로피합금(무질서한 배열) 비교 그림"></figure>
+    <figure><img src="img/hea_ingot.jpg" alt="용해로 안의 고엔트로피합금 주괴 사진"><figcaption>여러 상이 섞인 고엔트로피합금의 예시</figcaption></figure>
+    <figure style="flex:1.4"><img src="img/hea_structures.png" alt="고용체 상의 결정 구조 FCC, BCC, HCP 그림"></figure>
+  </div>
+</section>
+
+<!-- 3 -->
+<section class="slide">
+  <div class="kicker">배경 · 변수 소개</div>
+  <h2>상은 두 번의 갈림길에서 정해진다</h2>
+  <div class="body">
+    <div class="fig" style="flex:1.5"><img src="img/phase_tree.png" alt="상 결정 갈림길: 갈림길 1은 고르게 섞이나(ΔHmix, δ, Δχ, ΔSmix, 원소 개수), 갈림길 2는 FCC/BCC(VEC)"></div>
+    <div class="col" style="flex:.75">
+      <table>
+        <tr><th>변수</th><th>쉬운 뜻</th></tr>
+        <tr><td class="k">VEC</td><td>원자당 가전자 수 (접착제 양)</td></tr>
+        <tr><td class="k">ΔHmix</td><td>원소끼리의 친밀도</td></tr>
+        <tr><td class="k">δ</td><td>원자 크기의 제각각 정도</td></tr>
+        <tr><td class="k">Δχ</td><td>전자 끌어당기는 힘의 차이</td></tr>
+        <tr><td class="k">ΔSmix</td><td>섞임의 무질서도</td></tr>
+        <tr><td class="k">원소 개수</td><td>섞인 원소 종류 수</td></tr>
+      </table>
+      <div class="callout"><p>이 그림이 맞는지 마지막에 <b>SHAP으로 확인</b>한다.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <div class="kicker">수집 설계 <span class="wk">2주차</span></div>
+  <h2>질문 → 조작적 정의 → 변수 → 출처, 이 순서로</h2>
+  <div class="flow">
+    <div class="step"><div class="n">질문</div><div class="t">상을 맞힐 수 있나</div><div class="d">열역학 변수 → 주조 직후의 상</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">조작적 정의</div><div class="t">말을 숫자로</div><div class="d"><b>HEA</b> = ΔSmix ≥ 1R(8.31 J/K·mol)<br><b>상</b> = 주조 직후 X선 회절로 관측한 구조</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">관측 단위</div><div class="t">한 행 = 조성 1종</div><div class="d">이름 표기가 달라도 조성이 같으면 하나로 (tidy)</div></div>
+    <div class="arrow">→</div>
+    <div class="step"><div class="n">출처</div><div class="t">논문 공개 데이터</div><div class="d">Machaka(2021) 부록 CSV. 문헌 실험 결과를 모은 2차 데이터</div></div>
+  </div>
+  <div class="body">
+    <div class="col top">
+      <table>
+        <tr><th>변수</th><th>척도</th><th>평균을 낼 수 있나</th></tr>
+        <tr><td class="k">상 (Phases)</td><td>범주형 · 명목</td><td><span class="tag no">불가</span> 빈도·비율로만 요약</td></tr>
+        <tr><td class="k">원소 개수</td><td>수치형 · 이산</td><td><span class="tag ok">가능</span> 정수값, 최빈값도 함께</td></tr>
+        <tr><td class="k">VEC, δ, Δχ, ΔHmix, ΔSmix</td><td>수치형 · 연속</td><td><span class="tag ok">가능</span> 분포를 보고 판단</td></tr>
+      </table>
+    </div>
+    <div class="col top" style="flex:.8">
+      <div class="callout warn" style="margin-top:0"><p><b>AI 프롬프팅:</b> 참고한 Kaggle 데이터는 비공개였다. AI의 말을 믿지 않고 원 논문의 부록 파일을 <b>직접 내려받아</b> 1,361행 × 53열을 눈으로 확인했다.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <div class="kicker">데이터 진단 <span class="wk">3주차</span></div>
+  <h2>고치기 전에 먼저 본다 — 진단 결과</h2>
+  <div class="body">
+    <div class="col top" style="flex:1.3">
+      <table>
+        <tr><th>점검 항목</th><th>결과</th><th>의미</th></tr>
+        <tr><td class="k">인코딩</td><td>UTF-8 실패</td><td><b>cp1252</b>로 지정해 해결 (‘10°C/min’ 기호가 원인)</td></tr>
+        <tr><td class="k">완전히 같은 행</td><td class="num">0행</td><td>복사·붙여넣기 중복은 없음</td></tr>
+        <tr><td class="k">같은 합금 이름</td><td class="num">890행 반복</td><td>열처리·논문만 다른 기록 → <b>지우면 안 되는 중복</b></td></tr>
+        <tr><td class="k">표기만 다른 같은 조성</td><td class="num">15종</td><td>AlCrFeCoNi = AlCoCrFeNi. 글자 비교로는 못 잡음</td></tr>
+        <tr><td class="k">열처리 열 결측</td><td class="num">758~1,305행</td><td>빈칸 = ‘처리하지 않음’. <b>이유가 있는 빈칸</b></td></tr>
+        <tr><td class="k">상 라벨 충돌</td><td class="num">15종</td><td>같은 조성인데 논문마다 상이 다름</td></tr>
+        <tr><td class="k">이름과 안 맞는 값</td><td class="num">60건 · 39행</td><td>VEC 38·Δχ 22건 오타 / 39행은 아예 다른 조성으로 계산됨</td></tr>
+      </table>
+    </div>
+    <div class="col" style="flex:.7">
+      <div class="callout warn"><p><b>AI 함정 프롬프팅:</b> “정제해줘”가 아니라 <b>“문제를 보고만 하고 아무것도 고치지 마”</b>로 시켰다.</p></div>
+      <div class="callout"><p>처리 방법은 이 표를 본 뒤 <b>분석 전에</b> 정하고, 정제 로그에 모두 적었다.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="slide">
+  <div class="kicker">정제 판단 <span class="wk">3주차</span></div>
+  <h2>지울 것인가, 고칠 것인가 — 세 가지 판단</h2>
+  <div class="body">
+    <div class="col top">
+      <p style="font-weight:800;color:var(--ink);font-size:19px">① 빈칸에도 이유가 있다</p>
+      <p style="font-size:16px">열처리 온도가 빈 칸은 ‘모름’이 아니라 <b>‘열처리를 안 함’</b>. 같은 합금도 열처리하면 상이 바뀐다(두 상태가 다 있는 49종 중 22종). → 채우지 않고 빈칸인 행(= 주조 직후)만 골라 조건 통일.</p>
+    </div>
+    <div class="col top">
+      <p style="font-weight:800;color:var(--ink);font-size:19px">② 중복처럼 보이는 것</p>
+      <p style="font-size:16px">AlCoCrFeNi는 논문마다 <b>BCC</b>이기도, <b>금속간화합물</b>이기도 했다. 이전 코드는 ‘첫 행만 남기기’라 행 순서가 정답을 정했다. → 라벨이 충돌하는 15종은 <b>제외</b>, 같은 조성은 이름 표기가 달라도 <b>하나로</b>.</p>
+    </div>
+    <div class="col top">
+      <p style="font-weight:800;color:var(--ink);font-size:19px">③ 원본(이름)으로 되짚기</p>
+      <p style="font-size:16px">합금 이름으로 VEC·Δχ·ΔSmix를 다시 계산했다. ΔSmix가 맞으면 조성은 맞고 <b>값만 오타</b> → 교정 (VEC 38행, Δχ 22행. 예: TiZrNbTa Δχ 3.92 → 0.10). ΔSmix도 틀리면 <b>잘못된 조성으로 전부 계산</b> → 제외 (39행. 예: MoNbTaTiW).</p>
+    </div>
+  </div>
+  <div class="callout"><p>극단값(δ 16.9%, ΔHmix −39)은 이름과 일치 → <b>지우지 않음</b>. 표기가 애매해 검증 못 한 17행(예: NbTaTi30Zr)은 원본 값을 그대로 두었다 — 고치지 않기로 한 결정도 기록한다.</p></div>
+</section>
+
+<!-- 6b -->
+<section class="slide">
+  <div class="kicker">정제 판단 · 검증 기준 <span class="wk">3주차</span></div>
+  <h2>조성 열이 아니라 ‘합금 이름’을 기준으로 삼은 이유</h2>
+  <div class="body">
+    <div class="col" style="flex:1.05">
+      <div class="src">
+        <div class="node origin"><span class="tagline">원본 · 논문 저자가 보고</span><b>합금 이름 “Al2CoCrFeNi”</b></div>
+        <div class="branches">
+          <div class="branch">
+            <div class="edge">정리자가 <b>계산</b></div>
+            <div class="node ok"><b>VEC 6.50 · ΔSmix 12.98</b><span>이름과 일치 ✓</span></div>
+          </div>
+          <div class="branch">
+            <div class="edge">정리자가 <b>옮겨 적음</b></div>
+            <div class="node bad"><b>조성 열: Al 비율 오기</b><span>이 비율로 계산하면 VEC 8.00 ✗</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="callout warn"><p>조성 열도 이름에서 옮겨 적은 <b>2차 값</b>이다. 조성 열로 ‘교정’했다면 맞는 VEC 6.50을 <b>틀린 8.00으로 바꿨을 것</b> — 6.5는 BCC 쪽, 8.0은 FCC 경계다.</p></div>
+    </div>
+    <div class="col" style="flex:.95">
+      <div class="stats" style="margin-top:0">
+        <div class="stat"><div class="v">1,289</div><div class="l">이름 = 조성 열 (96%)<br>어느 쪽을 써도 같다</div></div>
+        <div class="stat"><div class="v">54</div><div class="l">이름 ≠ 조성 열<br>누가 맞는지가 중요</div></div>
+      </div>
+      <p style="font-size:16px;margin:4px 0 8px">54행에서, 정리자가 직접 계산해 넣은 <b>VEC·ΔSmix는 어느 쪽 조성과 맞았나?</b></p>
+      <table>
+        <tr><th>일치하는 쪽</th><th class="num">행 수</th></tr>
+        <tr><td class="k">합금 이름</td><td class="num"><b>52</b></td></tr>
+        <tr><td class="k">조성 열</td><td class="num">1</td></tr>
+        <tr><td class="k">둘 다 아님</td><td class="num">1</td></tr>
+      </table>
+      <div class="callout"><p>정리자는 <b>이름 기준의 올바른 조성</b>으로 변수를 계산했고, 실수는 조성 열을 옮겨 적을 때 생겼다 → <b>이름을 기준</b>으로 검증했다.</p></div>
+    </div>
+  </div>
+  <p class="note">이름을 해석할 수 있는 1,343행 기준. 표기가 애매한 17행(예: NbTaTi30Zr)은 추측하지 않고 원본 값을 그대로 두었다.</p>
+</section>
+
+<!-- 6c -->
+<section class="slide">
+  <div class="kicker">계산 공식</div>
+  <h2>이름으로 계산한 두 공식 — VEC와 ΔSmix</h2>
+  <div class="body" style="gap:28px">
+    <div class="col top">
+      <p style="font-weight:800;color:var(--ink);font-size:18px">VEC (가전자 농도) — 원자당 평균 가전자 수</p>
+      <div class="eq">VEC = Σ c<sub>i</sub> × VEC<sub>i</sub></div>
+      <table>
+        <tr><th>원소</th><th class="num">비율 c<sub>i</sub></th><th class="num">가전자 수 VEC<sub>i</sub></th><th class="num">c<sub>i</sub> × VEC<sub>i</sub></th></tr>
+        <tr><td class="k">Al</td><td class="num">2/6 = 0.333</td><td class="num">3</td><td class="num">1.000</td></tr>
+        <tr><td class="k">Co</td><td class="num">1/6 = 0.167</td><td class="num">9</td><td class="num">1.500</td></tr>
+        <tr><td class="k">Cr</td><td class="num">0.167</td><td class="num">6</td><td class="num">1.000</td></tr>
+        <tr><td class="k">Fe</td><td class="num">0.167</td><td class="num">8</td><td class="num">1.333</td></tr>
+        <tr><td class="k">Ni</td><td class="num">0.167</td><td class="num">10</td><td class="num">1.667</td></tr>
+        <tr><td class="k">합계</td><td></td><td></td><td class="num"><b>VEC = 6.50</b></td></tr>
+      </table>
+      <p style="font-size:15px;margin-top:8px">가전자 수 = 주기율표 족 번호 (Al 3, Ti 4, Nb 5, Cr 6, Mn 7, Fe 8, Co 9, Ni 10, Cu 11). 6.50 &lt; 6.87 → BCC 영역</p>
+    </div>
+    <div class="col top">
+      <p style="font-weight:800;color:var(--ink);font-size:18px">ΔSmix (혼합 엔트로피) — 섞임의 무질서도</p>
+      <div class="eq">ΔSmix = −R × Σ c<sub>i</sub> ln c<sub>i</sub></div>
+      <table>
+        <tr><th>원소</th><th class="num">비율 c<sub>i</sub></th><th class="num">ln c<sub>i</sub></th><th class="num">c<sub>i</sub> × ln c<sub>i</sub></th></tr>
+        <tr><td class="k">Al</td><td class="num">0.333</td><td class="num">−1.099</td><td class="num">−0.366</td></tr>
+        <tr><td class="k">Co</td><td class="num">0.167</td><td class="num">−1.792</td><td class="num">−0.299</td></tr>
+        <tr><td class="k">Cr</td><td class="num">0.167</td><td class="num">−1.792</td><td class="num">−0.299</td></tr>
+        <tr><td class="k">Fe</td><td class="num">0.167</td><td class="num">−1.792</td><td class="num">−0.299</td></tr>
+        <tr><td class="k">Ni</td><td class="num">0.167</td><td class="num">−1.792</td><td class="num">−0.299</td></tr>
+        <tr><td class="k">합계</td><td></td><td></td><td class="num">−1.561</td></tr>
+      </table>
+      <p style="font-size:15px;margin-top:8px">R = 8.314 J/(K·mol) → ΔSmix = −8.314 × (−1.561) = <b>12.98 J/(K·mol)</b></p>
+    </div>
+  </div>
+  <div class="body" style="flex:none;gap:16px">
+    <div class="callout" style="flex:1"><p><b>같은 비율로 n개 원소</b> → ΔSmix = R ln n<br>3원소 9.13 · 4원소 11.53 · 5원소 13.38 · 6원소 14.90 (히스토그램의 봉우리)</p></div>
+    <div class="callout warn" style="flex:1"><p><b>ΔSmix에는 원소 고유값이 없다</b> → 비율만 맞으면 반드시 같은 값이 나온다 → ‘조성을 제대로 썼나’를 가리는 <b>검증의 열쇠</b></p></div>
+  </div>
+  <p class="note">예시: Al2CoCrFeNi (Al 2 : Co 1 : Cr 1 : Fe 1 : Ni 1, 합계 6). c<sub>i</sub> = 원소 i의 몰 비율(모두 더하면 1).</p>
+</section>
+
+<!-- 7 -->
+<section class="slide">
+  <div class="kicker">정제 로그 <span class="wk">3주차</span></div>
+  <h2>1,361행 → 258종: 모든 규칙과 행 수</h2>
+  <div class="body">
+    <div class="col top" style="flex:1.5">
+      <table>
+        <tr><th>#</th><th>규칙</th><th class="num">전</th><th class="num">후</th><th>이유</th></tr>
+        <tr><td>1</td><td class="k">빈 행 제외</td><td class="num">1,361</td><td class="num">1,360</td><td>CSV 끝의 빈 줄</td></tr>
+        <tr class="zero"><td>2</td><td class="k">이름으로 VEC·Δχ 교정</td><td class="num">1,360</td><td class="num">1,360</td><td>오타 60건, 행 유지</td></tr>
+        <tr><td>3</td><td class="k">잘못된 조성 행 제외</td><td class="num">1,360</td><td class="num">1,321</td><td>ΔSmix까지 이름과 다름</td></tr>
+        <tr><td>4</td><td class="k">ΔSmix ≥ 1R</td><td class="num">1,321</td><td class="num">1,292</td><td>조작적 정의 밖의 일반 합금</td></tr>
+        <tr><td>5</td><td class="k">주조(AC)만</td><td class="num">1,292</td><td class="num">1,217</td><td>분말야금은 제조 경로가 다름</td></tr>
+        <tr><td>6</td><td class="k">가공·열처리 없음</td><td class="num">1,217</td><td class="num">470</td><td>주조 직후 상태로 통일</td></tr>
+        <tr><td>7</td><td class="k">라벨 충돌 제외</td><td class="num">470</td><td class="num">404</td><td>15종, 정답을 정할 수 없음</td></tr>
+        <tr><td>8</td><td class="k">같은 조성은 1행</td><td class="num">404</td><td class="num">258</td><td>관측 단위 = 조성 1종</td></tr>
+        <tr class="zero"><td>9</td><td class="k">이상치·결측 그대로</td><td class="num">258</td><td class="num">258</td><td>지울 근거 없음, 대치 안 함</td></tr>
+      </table>
+    </div>
+    <div class="col" style="flex:.7">
+      <div class="callout"><p><b>규칙 한 줄이 결론을 바꾸나?</b><br>7번 대신 ‘첫 행만 남기기’<br>n = 273, 정확도 <b>78.7%</b><br>7번 사용: n = 258, 정확도 <b>83.0%</b></p></div>
+      <div class="callout warn"><p>변수 순위는 같지만 <b>정확도는 4%p 차이</b>. 애매한 합금을 빼면 문제가 쉬워진다 — 83%는 ‘정답이 확실한 합금’에서의 성능이다.</p></div>
+    </div>
+  </div>
+  <p class="note">회색 행은 행을 지우지 않은 결정. 규칙은 모두 모델 결과를 보기 전에 정했다.</p>
+</section>
+
+<!-- 8 -->
+<section class="slide">
+  <div class="kicker">기술통계 <span class="wk">4주차</span></div>
+  <h2>평균과 중앙값 등을 시각화</h2>
+  <table>
+    <tr><th>변수</th><th class="num">n</th><th class="num">평균</th><th class="num">중앙값</th><th class="num">표준편차</th><th class="num">최솟값 (합금)</th><th class="num">최댓값 (합금)</th><th>평균으로 요약?</th></tr>
+    <tr><td class="k">원소 개수</td><td class="num">258</td><td class="num">5.12</td><td class="num">5</td><td class="num">0.84</td><td class="num">3 (CoFeNi)</td><td class="num">7 (Al0.5CoCrCu0.5FeNiTi0.5)</td><td><span class="tag ok">가능</span> 대칭</td></tr>
+    <tr><td class="k">VEC</td><td class="num">258</td><td class="num">6.09</td><td class="num">6.52</td><td class="num">1.53</td><td class="num">3.46 (Al58.5Mg31.5…)</td><td class="num">9.00 (CoFeNi)</td><td><span class="tag no">불가</span> 봉우리 둘</td></tr>
+    <tr><td class="k">원자 크기 차이 δ (%)</td><td class="num">258</td><td class="num">5.34</td><td class="num">5.34</td><td class="num">2.07</td><td class="num">0.75 (CoFeNi)</td><td class="num">16.86 (AlCCoCrFeNi)</td><td><span class="tag ok">가능</span> 꼬리 주의</td></tr>
+    <tr><td class="k">전기음성도 차이 Δχ</td><td class="num">258</td><td class="num">0.17</td><td class="num">0.14</td><td class="num">0.08</td><td class="num">0.03 (CoFeNi)</td><td class="num">0.38 (HfNbTaTiZrMoW)</td><td><span class="tag no">중앙값</span> 오른쪽 꼬리</td></tr>
+    <tr><td class="k">ΔHmix (kJ/mol)</td><td class="num">258</td><td class="num">−7.54</td><td class="num">−6.21</td><td class="num">7.74</td><td class="num">−39.45 (Mo0.5NbHf0.5ZrTiSi0.9)</td><td class="num">4.16 (CoCrCuFeMn)</td><td><span class="tag no">중앙값</span> 왼쪽 꼬리</td></tr>
+    <tr><td class="k">ΔSmix (J/K·mol)</td><td class="num">258</td><td class="num">12.89</td><td class="num">13.15</td><td class="num">1.55</td><td class="num">8.34 (Al58.5Mg31.5…)</td><td class="num">16.18 (HfNbTaTiZrMoW)</td><td><span class="tag no">불가</span> 봉우리 여럿</td></tr>
+  </table>
+  <div class="callout"><p><b>ΔHmix:</b> 왼쪽으로 꼬리가 긴 분포(왜도 −0.94). 강하게 음수인 소수 합금(대부분 금속간화합물)이 평균(−7.54)을 중앙값(−6.21)보다 꼬리 쪽으로 끌어간다.</p></div>
+  <p class="note">평균과 중앙값의 차이가 표준편차의 0.15배를 넘거나 봉우리가 둘 이상이면 평균 하나로 요약하지 않았다. 정제 후 결측 0건.</p>
+</section>
+
+<!-- 9 -->
+<section class="slide">
+  <div class="kicker">분포의 모양 <span class="wk">4주차</span></div>
+  <h2>그려 보기 전에는 모른다 — 히스토그램 (구간 25개)</h2>
+  <div class="fig wide" style="flex:none"><img src="img/histograms.png" alt="6개 변수의 히스토그램. VEC는 봉우리가 둘, 평균이 빈 구간에 있음"></div>
+  <div class="body" style="gap:16px">
+    <div class="callout" style="flex:1"><p><b>VEC는 이봉 분포.</b> 평균 6.09 자리에는 합금이 거의 없다 — <b>평균이 빈자리를 가리킨다</b>. 두 집단이 섞였다는 신호 → 상별로 쪼갠다.</p></div>
+    <div class="callout" style="flex:1"><p><b>ΔSmix의 봉우리들</b>은 11.5·13.4·14.9 = R·ln4·ln5·ln6. <b>4·5·6원소를 똑같은 비율로 섞은 합금</b>이 많다는 뜻이다.</p></div>
+  </div>
+  <p class="note">검은 실선 = 평균, 주황 점선 = 중앙값. 원소 개수는 정수라 구간을 1 단위로 그렸다.</p>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <div class="kicker">집단별 기술통계 <span class="wk">4주차</span></div>
+  <h2>상별로 쪼개면 VEC가 깔끔하게 갈린다</h2>
+  <div class="body">
+    <div class="fig"><img src="img/vec_by_phase.png" alt="상별 VEC 분포. BCC 중앙값 4.67, FCC 8.06, FCC+BCC 7.47, 금속간화합물 7.12"></div>
+    <div class="col" style="flex:.95">
+      <table>
+        <tr><th>상</th><th class="num">n</th><th class="num">VEC 평균 (SD)</th><th class="num">중앙값</th><th class="num">ΔHmix 중앙값</th></tr>
+        <tr><td class="k">BCC</td><td class="num">131</td><td class="num">5.03 (0.99)</td><td class="num">4.67</td><td class="num">−2.8</td></tr>
+        <tr><td class="k">FCC+BCC</td><td class="num">22</td><td class="num">7.43 (0.49)</td><td class="num">7.47</td><td class="num">−7.8</td></tr>
+        <tr><td class="k">FCC</td><td class="num">27</td><td class="num">8.12 (0.47)</td><td class="num">8.06</td><td class="num">−5.0</td></tr>
+        <tr><td class="k">금속간화합물</td><td class="num">78</td><td class="num">6.79 (1.30)</td><td class="num">7.12</td><td class="num">−11.8</td></tr>
+      </table>
+      <div class="callout"><p>쪼개고 나니 각 상의 표준편차는 0.5~1.0으로 전체(1.53)보다 훨씬 작다. 경험 규칙(VEC &lt; 6.87 → BCC, ≥ 8 → FCC)과 일치.</p></div>
+      <div class="callout warn"><p>금속간화합물은 VEC가 넓게 퍼져(SD 1.30) 못 가른다. 대신 <b>ΔHmix가 가장 음수</b>다.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 11 -->
+<section class="slide">
+  <div class="kicker">탐색적 분석</div>
+  <h2>문헌의 고용체 조건도 금속간화합물을 다 걸러내지 못한다</h2>
+  <div class="fig wide" style="flex:none"><img src="img/delta_dh_facets.png" alt="상별 원자 크기 차이와 혼합 엔탈피 산점도. 주황 점선 사각형은 고용체 형성 영역"></div>
+  <div class="stats" style="margin-top:12px">
+    <div class="stat"><div class="v">70.6%</div><div class="l">고용체(BCC·FCC·2상) 합금 중 영역 안에 든 비율</div></div>
+    <div class="stat"><div class="v">41.0%</div><div class="l">금속간화합물 중 영역 안에 든 비율 (걸러져야 할 합금)</div></div>
+  </div>
+  <p class="note">주황 점선 = Guo &amp; Liu(2011)의 고용체 형성 영역(δ ≤ 6.6%, −11.6 ≤ ΔHmix ≤ 3.2 kJ/mol). 규칙 하나로는 부족 → 여러 변수를 함께 쓰는 모델.</p>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <div class="kicker">개념 <span class="cpt">교차검증</span></div>
+  <h2>교차검증 — 시험을 다섯 번 나눠 본다</h2>
+  <div class="body">
+    <div class="col" style="flex:1.15">
+      <div class="folds">
+        <div></div><div class="lab" style="text-align:center">조각 1</div><div class="lab" style="text-align:center">조각 2</div><div class="lab" style="text-align:center">조각 3</div><div class="lab" style="text-align:center">조각 4</div><div class="lab" style="text-align:center">조각 5</div><div class="lab" style="text-align:right">시험 정확도</div>
+        <div class="lab">1회차</div><div class="b t">시험</div><div class="b">학습</div><div class="b">학습</div><div class="b">학습</div><div class="b">학습</div><div class="acc">a₁</div>
+        <div class="lab">2회차</div><div class="b">학습</div><div class="b t">시험</div><div class="b">학습</div><div class="b">학습</div><div class="b">학습</div><div class="acc">a₂</div>
+        <div class="lab">3회차</div><div class="b">학습</div><div class="b">학습</div><div class="b t">시험</div><div class="b">학습</div><div class="b">학습</div><div class="acc">a₃</div>
+        <div class="lab">4회차</div><div class="b">학습</div><div class="b">학습</div><div class="b">학습</div><div class="b t">시험</div><div class="b">학습</div><div class="acc">a₄</div>
+        <div class="lab">5회차</div><div class="b">학습</div><div class="b">학습</div><div class="b">학습</div><div class="b">학습</div><div class="b t">시험</div><div class="acc">a₅</div>
+      </div>
+      <div class="legend"><span><span class="sw" style="background:#cde2fb"></span>학습용 (약 206종)</span><span><span class="sw" style="background:var(--accent2)"></span>시험용 (약 52종, 모델이 처음 보는 합금)</span></div>
+      <div class="eq">최종 성능 = (a₁ + a₂ + a₃ + a₄ + a₅) ÷ 5 &nbsp;± 표준편차</div>
+    </div>
+    <div class="col" style="flex:.85">
+      <ul>
+        <li><b>왜 나누나:</b> 공부한 문제로 시험 보면 100점이 나온다. 처음 보는 합금으로 시험해야 진짜 실력이다</li>
+        <li><b>왜 다섯 번:</b> 한 번만 나누면 쉬운 문제가 시험에 몰리는 ‘운’이 생긴다. 모든 합금이 한 번씩 시험에 나오게 돌린다</li>
+        <li><b>층화(stratified):</b> 조각마다 상 비율(BCC 51%…)을 똑같이 맞춘다</li>
+      </ul>
+      <div class="callout warn"><p>SMOTE·전처리는 <b>학습 조각 안에서만</b>. 시험 조각을 건드리면 점수가 부풀려진다(슬라이드 22).</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <div class="kicker">예측 모델</div>
+  <h2>모델은 단순 규칙보다 26%p 더 정확하다</h2>
+  <div class="body">
+    <div class="fig"><img src="img/model_compare.png" alt="정확도 비교: VEC 규칙 57%, 로지스틱 회귀 75%, 랜덤포레스트 83%, 그래디언트 부스팅 78%"></div>
+    <div class="col" style="flex:.9">
+      <table>
+        <tr><th>방법</th><th class="num">정확도 (SD)</th><th class="num">Macro F1</th></tr>
+        <tr><td>전부 BCC라고 찍기</td><td class="num">50.8%</td><td class="num">—</td></tr>
+        <tr><td>VEC 규칙 (기준선)</td><td class="num">57.4%</td><td class="num">0.42</td></tr>
+        <tr><td>로지스틱 회귀</td><td class="num">75.2% (3.6)</td><td class="num">0.68</td></tr>
+        <tr><td><b>랜덤포레스트</b></td><td class="num"><b>83.0% (4.4)</b></td><td class="num"><b>0.79</b></td></tr>
+        <tr><td>그래디언트 부스팅</td><td class="num">78.3% (1.5)</td><td class="num">0.73</td></tr>
+      </table>
+      <div class="callout"><p>BCC가 51%라 정확도만 보면 과대평가된다 → 상마다 고르게 맞혔는지 보는 <b>Macro F1</b>을 함께 보고한다.</p></div>
+    </div>
+  </div>
+  <p class="note">입력 변수 6개, 5-fold 층화 교차검증 평균. 괄호 = 5회의 표준편차(%p).</p>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <div class="kicker">예측 모델 · 설명력</div>
+  <h2>모델별 R² — 분류 모델에서는 ‘의사 R²’로 잰다</h2>
+  <div class="body">
+    <div class="fig"><img src="img/pseudo_r2.png" alt="McFadden 의사 R²: 로지스틱 회귀 0.50, 랜덤포레스트 0.59, 그래디언트 부스팅 0.38"></div>
+    <div class="col" style="flex:.95">
+      <p><b>R²</b>는 숫자를 예측하는 회귀용 지표다. 상(범주)을 맞히는 분류에는 대신 <b>McFadden 의사 R²</b>를 쓴다.</p>
+      <div class="eq">R²<sub>McF</sub> = 1 − 모델의 로그손실 ÷ ‘비율대로 찍기’의 로그손실</div>
+      <ul>
+        <li>0 = 상 비율대로 찍는 것과 같음, 1 = 완벽. <b>0.2~0.4만 돼도 좋은 편</b></li>
+        <li>랜덤포레스트 <b>0.59</b>로 가장 높다</li>
+        <li>부스팅은 정확도(78%)가 로지스틱(75%)보다 높은데 R²는 낮다 → <b>틀릴 때 너무 확신</b>해서 감점이 크다</li>
+      </ul>
+    </div>
+  </div>
+  <p class="note">로그손실: 정답에 준 확률이 낮을수록 커지는 벌점. 5-fold 교차검증의 시험 조각에서 계산.</p>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <div class="kicker">개념 <span class="cpt">혼동행렬</span></div>
+  <h2>혼동행렬 — ‘무엇을 무엇으로’ 틀렸는지 보는 표</h2>
+  <div class="body">
+    <div class="col top" style="flex:.9">
+      <img src="img/confusion_concept.jpg" alt="혼동행렬 참고 표: TP, FN, FP, TN과 민감도, 특이도, 정밀도, 정확도 공식" style="width:100%;max-height:220px;object-fit:contain;margin-bottom:10px">
+      <p style="margin-bottom:6px;font-size:16px">예: “FCC인가, 아닌가”만 볼 때</p>
+      <div class="cm">
+        <div></div><div class="h">FCC라고 예측</div><div class="h">아니라고 예측</div>
+        <div class="h">실제 FCC</div><div class="g"><b>정답</b>맞게 찾음</div><div class="r"><b>놓침</b>FCC인데 못 찾음</div>
+        <div class="h">실제 FCC 아님</div><div class="r"><b>헛짚음</b>아닌데 FCC라고 함</div><div class="g"><b>정답</b>맞게 걸러냄</div>
+      </div>
+      <div class="legend"><span><span class="sw" style="background:#cde2fb"></span>대각선 = 맞힌 것</span><span><span class="sw" style="background:#fdf0ea"></span>대각선 밖 = 틀린 것</span></div>
+    </div>
+    <div class="col">
+      <ul>
+        <li><b>행 = 실제 상, 열 = 예측한 상.</b> 대각선이 진할수록 좋은 모델</li>
+        <li><b>재현율(recall):</b> 실제 FCC 중 FCC로 찾아낸 비율 — 행 방향으로 읽는다</li>
+        <li><b>정밀도(precision):</b> FCC라고 한 것 중 진짜 FCC 비율 — 열 방향으로 읽는다</li>
+        <li>정확도 하나는 ‘어디서’ 틀렸는지 숨긴다. 혼동행렬은 <b>틀린 방향</b>을 보여준다</li>
+      </ul>
+      <div class="callout"><p>우리 문제는 상이 4개라 4×4 표가 된다. 다음 장에서 실제 결과를 읽는다.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 16 -->
+<section class="slide">
+  <div class="kicker">예측 결과 해석</div>
+  <h2>무엇을 맞히고, 무엇을 틀렸나</h2>
+  <div class="body short">
+    <div class="fig" style="flex:1"><img src="img/confusion.png" alt="랜덤포레스트 혼동행렬. BCC 89%, FCC 78%, FCC+BCC 68%, Im 78% 정답"></div>
+    <div class="fig" style="flex:1.1"><img src="img/importance.png" alt="순열 중요도: VEC가 가장 크고 그다음 혼합 엔탈피, 원자 크기 차이 순"></div>
+  </div>
+  <div class="callout" style="margin-top:4px"><p><b>BCC(89%)는 잘 맞히고, FCC+BCC 2상은 68%</b> — 22종뿐이라 배울 예가 적고, 틀린 것의 대부분(23%)은 금속간화합물로 갔다. 순열 중요도는 <b>VEC가 압도적</b>, ΔHmix가 2위.</p></div>
+  <p class="note">왼쪽: 혼동행렬(교차검증 예측, 행 = 실제 상, 재현율) · 오른쪽: 순열 중요도(변수 하나를 뒤섞었을 때 정확도가 떨어지는 정도, 5개 fold 평균).</p>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <div class="kicker">개념 <span class="cpt">SHAP</span></div>
+  <h2>SHAP — 예측 하나를 변수별 기여로 나눈다</h2>
+  <div class="body">
+    <div class="col">
+      <div class="eq">이 합금의 BCC 확률 = 평균 확률 + VEC 몫 + ΔHmix 몫 + δ 몫 + …</div>
+      <ul>
+        <li><b>비유:</b> 팀 프로젝트 점수를 팀원 기여도로 공정하게 나누기 (게임이론의 섀플리 값)</li>
+        <li><b>+ 값</b>이면 그 상 쪽으로 밀고, <b>− 값</b>이면 반대로 민다</li>
+        <li>합금 하나하나에 대해 계산 → 모으면 <b>변수가 어느 방향으로 작용하는지</b> 보인다</li>
+      </ul>
+    </div>
+    <div class="col" style="flex:1.05">
+      <table>
+        <tr><th></th><th>순열 중요도</th><th>SHAP</th></tr>
+        <tr><td class="k">질문</td><td>이 변수를 망가뜨리면 얼마나 틀리나</td><td>이 예측에 각 변수가 얼마나 기여했나</td></tr>
+        <tr><td class="k">방향 (+/−)</td><td>모름</td><td><b>앎</b></td></tr>
+        <tr><td class="k">합금 하나 설명</td><td>불가</td><td><b>가능</b></td></tr>
+        <tr><td class="k">상별로 따로</td><td>하나로 합쳐짐</td><td><b>상마다 따로</b></td></tr>
+      </table>
+      <div class="callout"><p>두 방법을 함께 써서 <b>순위가 같은지</b> 교차 확인한다.</p></div>
+    </div>
+  </div>
+  <p class="note">SHAP은 ‘모델이 이렇게 판단했다’를 설명할 뿐, 자연 법칙을 증명하지는 않는다. Lundberg &amp; Lee (2017).</p>
+</section>
+
+<!-- 18 -->
+<section class="slide">
+  <div class="kicker">해석 · SHAP</div>
+  <h2>모델은 ‘두 갈림길’을 그대로 배웠다</h2>
+  <div class="fig wide" style="flex:none"><img src="img/shap_dependence.png" alt="SHAP 의존도: VEC가 높을수록 FCC 확률 증가, 6.9 근처를 넘으면 BCC 확률 감소, ΔHmix가 −7 아래면 금속간화합물 확률 증가"></div>
+  <div class="body" style="gap:14px">
+    <div class="callout" style="flex:1"><p><b>VEC → FCC/BCC:</b> 약 7.3 위에서 FCC 쪽(+), 약 6.9 위에서 BCC 반대쪽(−). 문헌 경계 6.87과 거의 같다.</p></div>
+    <div class="callout" style="flex:1"><p><b>ΔHmix → 금속간화합물:</b> 약 −7 kJ/mol보다 음수일수록 Im 쪽(+). ‘원소끼리 너무 친하면 짝지어 뭉친다’.</p></div>
+    <div class="callout" style="flex:1"><p><b>순위 교차 확인:</b> SHAP과 순열 중요도 모두 VEC → ΔHmix → δ → Δχ → ΔSmix → 원소 개수.</p></div>
+  </div>
+  <p class="note">점 하나 = 합금 1종. 세로축 = 그 변수가 해당 상 확률을 얼마나 올렸나(+)/내렸나(−). 258종 전체로 학습한 랜덤포레스트.</p>
+</section>
+
+<!-- 19 -->
+<section class="slide">
+  <div class="kicker">해석 · SHAP 개별 사례</div>
+  <h2>AlCoFeNi는 VEC 7.5인데 왜 BCC일까</h2>
+  <div class="body">
+    <div class="fig"><img src="img/shap_example.png" alt="AlCoFeNi의 BCC 확률 기여: VEC 7.5는 −0.20, 원자 크기 차이 6.24%는 +0.15, 전기음성도 차이 +0.10, ΔHmix −13.75는 +0.07"></div>
+    <div class="col" style="flex:.85">
+      <ul>
+        <li>VEC 7.5는 규칙상 BCC가 아니다 → SHAP도 <b>−0.20</b> (BCC 반대)</li>
+        <li>그런데 <b>원자 크기 차이 6.24%</b>(+0.15)와 Δχ·ΔHmix가 BCC 쪽으로 더 세게 밀었다</li>
+        <li>결과: BCC 확률 평균 0.51 → <b>0.71</b>, 실제로도 BCC</li>
+      </ul>
+      <div class="callout"><p><b>Al은 원자가 크다</b> → δ가 커진다 → 빽빽한 FCC가 불편해져 BCC로. VEC 규칙의 예외(Al 합금)를 모델은 δ로 잡아냈다.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 20 -->
+<section class="slide">
+  <div class="kicker">비판적 검토</div>
+  <h2>참고 노트북의 높은 정확도는 부풀려진 숫자였다</h2>
+  <div class="body">
+    <div class="fig"><img src="img/smote_leak.png" alt="SMOTE 없음 83%, SMOTE 후 분할 89%, 분할 후 SMOTE 83%"></div>
+    <div class="col" style="flex:.85">
+      <ul>
+        <li>SMOTE: 소수 상의 가짜 샘플을 만들어 불균형을 줄이는 기법</li>
+        <li>참고 노트북은 <b>SMOTE를 먼저 하고 데이터를 나눴다</b> → 시험 조각에 학습 데이터로 만든 가짜 샘플이 섞임</li>
+        <li>같은 방식으로 재현하면 <b>89%</b>, 올바르게(나눈 뒤 학습 조각에만) 하면 <b>83%</b></li>
+      </ul>
+      <div class="callout warn"><p>3주차의 교훈과 같다: 가짜 값을 끼워 넣으면 숫자가 실제보다 좋아 보인다 — <b>평균 대치가 표준편차를 줄이는 것과 같은 구조</b>.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 21 -->
+<section class="slide">
+  <div class="kicker">결론과 한계 <span class="wk">2주차 · 편향</span></div>
+  <h2>이 데이터에는 누가 빠져 있는가</h2>
+  <div class="body">
+    <div class="col">
+      <p style="font-weight:800;color:var(--ink);margin-bottom:6px">발견한 것</p>
+      <ul>
+        <li>열역학 변수 6개로 주조 직후 상을 <b>약 83%</b> 맞힌다 (규칙 57%, 찍기 51%, 의사 R² 0.59)</li>
+        <li><b>VEC가 FCC/BCC를</b>, <b>ΔHmix가 금속간화합물을</b> 가른다 — 기술통계·순열 중요도·SHAP이 모두 같은 결론</li>
+        <li>VEC 규칙의 예외(Al 합금)는 <b>원자 크기 차이</b>가 설명한다</li>
+      </ul>
+    </div>
+    <div class="col">
+      <p style="font-weight:800;color:var(--ink);margin-bottom:6px">한계 — 빠진 데이터</p>
+      <ul>
+        <li><b>출판 편향:</b> 논문에 실린 합금만 있다. 실패한 합금은 없다</li>
+        <li><b>쉬운 문제 편향:</b> 라벨이 충돌한 애매한 15종을 빼서 정확도가 4%p 높게 나왔다</li>
+        <li><b>범위:</b> 주조 직후만. 열처리 후 상은 말할 수 없다</li>
+        <li><b>검증하지 못한 값:</b> VEC·Δχ 오류는 고쳤지만, 표기가 애매한 17행(NbTaTi30Zr 등)과 ΔHmix·δ(원소 쌍 표 필요)는 재계산하지 못했다 — 오류가 남아 있을 수 있다</li>
+        <li><b>이름이 맞다는 전제:</b> 모든 검증의 기준인 합금 이름을 원 논문과 직접 대조하지는 않았다</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 22 -->
+<section class="slide">
+  <div class="kicker">출처와 AI 활용</div>
+  <h2>데이터·참고 자료와 분석 방식</h2>
+  <div class="body">
+    <div class="col top" style="flex:1.15">
+      <ul>
+        <li>R. Machaka, “Machine learning-based prediction of phases in high-entropy alloys: A data article,” <i>Data in Brief</i> 38 (2021) 107346. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8477136/">PMC8477136</a> · <a href="https://data.mendeley.com/datasets/7fhwrgfh2s/1">Mendeley Data</a></li>
+        <li>E. Özcan, “High Entropy Alloys EDA and ML,” <a href="https://www.kaggle.com/code/emrzcn/high-entropy-alloys-eda-and-ml/notebook">Kaggle Notebook</a> (분석 흐름 참고)</li>
+        <li>S. Guo, C. T. Liu, <i>Prog. Nat. Sci.: Mater. Int.</i> 21 (2011) 433–446 (고용체 형성 기준, VEC 경계)</li>
+        <li>S. M. Lundberg, S.-I. Lee, “A Unified Approach to Interpreting Model Predictions,” NeurIPS (2017) (SHAP)</li>
+        <li>코드·데이터·정제 로그: <a href="https://github.com/jungdaeun1018-ship-it/hea-phase-prediction">GitHub 저장소</a></li>
+      </ul>
+    </div>
+    <div class="col top">
+      <table>
+        <tr><th>단계</th><th>AI(Claude Code)에게 맡긴 것</th><th>사람이 판단한 것</th></tr>
+        <tr><td class="k">질문</td><td>—</td><td>주제·질문·조작적 정의</td></tr>
+        <tr><td class="k">명세</td><td>코드 작성, 계산</td><td>“고치지 말고 보고만”, “중앙값·분포 함께”</td></tr>
+        <tr><td class="k">검증</td><td>재계산·교차검증·SHAP</td><td>링크 직접 확인, 이름으로 값 대조, 행 수 비교</td></tr>
+      </table>
+    </div>
+  </div>
+  <p class="note">←/→ 키 또는 아래 버튼으로 넘기기 · 인쇄(Ctrl+P) 시 전체 슬라이드 출력</p>
+</section>
+
+</div>
+<div class="nav"><button id="prev" aria-label="이전 슬라이드">← 이전</button><button id="next" aria-label="다음 슬라이드">다음 →</button></div>
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const stage = document.getElementById('stage');
+  slides.forEach((s, i) => {
+    const n = document.createElement('div'); n.className = 'pageno'; n.textContent = `${i + 1} / ${slides.length}`; s.appendChild(n);
+    const b = document.createElement('div'); b.className = 'bar'; b.style.width = `${(i + 1) / slides.length * 100}%`; s.appendChild(b);
+  });
+  let cur = Math.min(Math.max(parseInt(location.hash.slice(1)) - 1 || 0, 0), slides.length - 1);
+  function show(i) {
+    cur = Math.min(Math.max(i, 0), slides.length - 1);
+    slides.forEach((s, j) => s.classList.toggle('active', j === cur));
+    history.replaceState(null, '', `#${cur + 1}`);
+  }
+  function fit() {
+    const k = Math.min(innerWidth / 1280, (innerHeight - 50) / 720) * 0.97;
+    stage.style.transform = `translate(-50%, calc(-50% - 18px)) scale(${k})`;
+  }
+  document.addEventListener('keydown', e => {
+    if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); show(cur + 1); }
+    if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); show(cur - 1); }
+  });
+  document.getElementById('prev').onclick = () => show(cur - 1);
+  document.getElementById('next').onclick = () => show(cur + 1);
+  addEventListener('hashchange', () => show((parseInt(location.hash.slice(1)) || 1) - 1));
+  addEventListener('resize', fit); fit(); show(cur);
+</script>
+</body>
+</html>
